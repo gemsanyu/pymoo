@@ -46,7 +46,7 @@ class MOFPA(FlowerPollinationAlgorithm):
             sampling on Levy Distribution
 
         alpha : float
-            The step size scaling factor and is usually 0.01.
+            The step size scaling factor and is usually 0.1.
 
         pa : float
             The switch probability, pa fraction of the nests will be abandoned on every iteration
@@ -66,11 +66,11 @@ class MOFPA(FlowerPollinationAlgorithm):
         #population indexes, all solutions will be mutated
         a = np.arange(len(pop))
         #best solutions g* for the global pollination
-        b = np.repeat(best, len(pop))
+        b = np.random.choice(best_indexes, len(pop))
 
         # randomly select 2 different solutions for the local pollination
         rand_pair = np.argpartition(np.random.rand(len(pop), len(pop)), 2, axis=1)[:,:2]
-        c,d = rand_pair.T
+        c, d = rand_pair.T
 
 
         P = np.stack([a,b,c,d])
