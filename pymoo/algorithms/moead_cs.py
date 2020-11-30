@@ -31,9 +31,8 @@ class Modified_RW(InfillCriterion):
 
      #E is the neighbourhood in the form of indexes
     #i is the current solution to be modified
-    def _grw(self, problem,  pop, E, i):
+    def _grw(self, problem, X, E, i):
         #choose 1 random solution index from E
-        X = pop.get("X")
         r1 = np.random.choice(E, 1)[0]
         dvec = self.alpha*(X[r1] - X[i])*self.levy.do(problem.n_var)
         _x = X[i] + dvec
@@ -43,9 +42,8 @@ class Modified_RW(InfillCriterion):
         off = self.mutation.do(problem, off)
         return off
 
-    def _lrw(self, problem, pop, E, i):
+    def _lrw(self, problem, X, E, i):
         r1, r2 = np.random.choice(E, 2, replace=False)
-        X = pop.get("X")
 
         eps = np.random.rand()
         dvec = eps*(X[r1]-X[r2])
@@ -57,14 +55,14 @@ class Modified_RW(InfillCriterion):
         off = Population.new(X=_x)
         return off
 
-    def _do(self, problem, pop, n_offsprings, parents=None, **kwargs):
+    def _do(self, problem, pop, n_offsprings, X, parents=None, **kwargs):
         if parents is None:
             raise Exception("parents cannot be None, must be [Neighbors, idx, op]")
         neighbors, idx, op = parents
         if op==0:
-            off = self._grw(problem, pop, neighbors, idx)
+            off = self._grw(problem, X, neighbors, idx)
         else:
-            off = self._lrw(problem, pop, neighbors, idx)
+            off = self._lrw(problem, X, neighbors, idx)
         return off
 
 
@@ -138,8 +136,7 @@ class MOEAD_CS(GeneticAlgorithm):
         self.ideal_point = np.min(self.pop.get("F"), axis=0)
         pf = self.nds.do(self.pop.get("F"), only_non_dominated_front=True)
         self.nadir_point = np.max(pf, axis=0)
-        max_angles = self._calc_max_angle(self.ref_dirs, self.pop.get("F"))
-        self.pop.set("max_angle", max_angles)
+        self.max_angles = self._calc_max_angle(self.ref_dirs, self.pop.get("F"))
 
     def _calc_max_angle(self, w, F):
         f = F-self.ideal_point
@@ -165,10 +162,12 @@ class MOEAD_CS(GeneticAlgorithm):
         FRR = np.array([reward0, reward1])
         op_score = self._calc_op_score(FRR, op_freq)
         return np.argmin(op_score)
-        
+
 
     def _next(self):
         op = self._choose_op()
+        X = self.pop.get("X")
+        F = self.pop.get("F")
         for idx in range(self.pop_size):
             if np.random.rand() <= self.prob_neighbor_mating:
                 E = self.neighbors[idx]
@@ -179,24 +178,24 @@ class MOEAD_CS(GeneticAlgorithm):
             E = np.random.permutation(E)
 
             parents = np.array([E, idx, op], dtype='object')
-            off = self.mating.do(self.problem, self.pop, 1, parents=parents, algorithm=self)
+            off = self.mating.do(self.problem, self.pop, 1, X=X, parents=parents, algorithm=self)
             self.evaluator.eval(self.problem, off)
-
             self.ideal_point = np.min(np.vstack([self.ideal_point, off.get("F")]), axis=0)
 
-            max_angles_old = self.pop.get("max_angle")[E]
+            max_angles_old = self.max_angles[E]
             w = self.ref_dirs[E]
             f = np.tile(off.get("F"), (len(E), 1))
             max_angles_new = self._calc_max_angle(w, f)
 
-
-            FV = self._decomposition.do(self.pop[E].get("F"), weights=self.ref_dirs[E], ideal_point=self.ideal_point)
+            FV = self._decomposition.do(F[E], weights=self.ref_dirs[E], ideal_point=self.ideal_point)
             off_FV = self._decomposition.do(f, weights=self.ref_dirs[E], ideal_point=self.ideal_point)
+
 
             #compute improved score and max angle difference
             G = (FV - off_FV)/FV
             DT = max_angles_old - max_angles_new
             Improved = np.logical_and(G>=0, DT>=0)
+            # print(Improved)
 
             max_angles_new = max_angles_new[Improved]
             G = G[Improved]
@@ -206,8 +205,9 @@ class MOEAD_CS(GeneticAlgorithm):
             G = G[:self.n_replacement]
             E = E[:self.n_replacement]
 
-            self.pop[E] = off[0]
-            self.pop[E].set("max_angle", max_angles_new)
+            F[E] = f[0]
+            X[E] = off.get("X")[0]
+            self.max_angles[E] = max_angles_new
             FIR = np.sum(G)
 
             #record used operator and the reward (improvement rate) obtained
@@ -215,12 +215,13 @@ class MOEAD_CS(GeneticAlgorithm):
             self.used_op[self.sw_idx] = op
             self.sw_idx = (self.sw_idx+1) % self.W
 
+        self.pop.set("X", X)
+        self.pop.set("F", F)
         #update nadir point
-        pf = self.nds.do(self.pop.get("F"), only_non_dominated_front=True)
+        pf = self.nds.do(F, only_non_dominated_front=True)
         self.nadir_point = np.max(pf, axis=0)
 
         #update max angles
-        max_angles = self._calc_max_angle(self.ref_dirs, self.pop.get("F"))
-        self.pop.set("max_angle", max_angles)
+        self.max_angles = self._calc_max_angle(self.ref_dirs, self.pop.get("F"))
 
 # parse_doc_string(MOEAD_CS.__init__)
