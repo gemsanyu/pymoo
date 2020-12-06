@@ -99,12 +99,12 @@ class MOEAD_ALFPA(FlowerPollinationAlgorithm):
         cauchy = AdaptiveLevyFlight(alpha, 1)
         gaussian = AdaptiveLevyFlight(alpha, 2)
         levy1 = AdaptiveLevyFlight(alpha, 1.3)
-        levy2 = AdaptiveLevyFlight(alpha, 1.5)
+        # levy2 = AdaptiveLevyFlight(alpha, 1.5)
         levy3 = AdaptiveLevyFlight(alpha, 1.7)
         lrw = LocalPollination()
 
         #5 operators
-        self.mating = [levy1, levy2, levy3, lrw]
+        self.mating = [cauchy, gaussian, levy1, levy3, lrw]
         self.mutation = PolynomialMutation(prob=None, eta=20)
         self.n_op = len(self.mating)
 
