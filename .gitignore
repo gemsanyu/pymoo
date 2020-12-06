@@ -125,5 +125,4 @@ ENV/
 *.out
 *.err
 *slurm.sh
-
-*/paper/result/*
+*.csv
