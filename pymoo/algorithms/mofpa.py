@@ -19,7 +19,7 @@ from pymoo.util.termination.default import MultiObjectiveDefaultTermination
 class MOFPA(FlowerPollinationAlgorithm):
 
     def __init__(self,
-                 pop_size=50,
+                 pop_size=100,
                  beta=1.5,
                  alpha=0.1,
                  p=0.8,
@@ -71,7 +71,6 @@ class MOFPA(FlowerPollinationAlgorithm):
         # randomly select 2 different solutions for the local pollination
         rand_pair = np.argpartition(np.random.rand(len(pop), len(pop)), 2, axis=1)[:,:2]
         c, d = rand_pair.T
-
 
         P = np.stack([a,b,c,d])
         # do the flower pollination and evaluate the result offsprings

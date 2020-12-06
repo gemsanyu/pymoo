@@ -165,10 +165,15 @@ class MOEAD_CS(GeneticAlgorithm):
 
 
     def _next(self):
-        op = self._choose_op()
         X = self.pop.get("X")
         F = self.pop.get("F")
         for idx in range(self.pop_size):
+            op = self._choose_op()
+            if np.random.rand() <= 0.8:
+                op=0
+            else:
+                op=1
+
             if np.random.rand() <= self.prob_neighbor_mating:
                 E = self.neighbors[idx]
             else:
@@ -194,7 +199,7 @@ class MOEAD_CS(GeneticAlgorithm):
             #compute improved score and max angle difference
             G = (FV - off_FV)/FV
             DT = max_angles_old - max_angles_new
-            Improved = np.logical_and(G>=0, DT>=0)
+            Improved = G>=0
             # print(Improved)
 
             max_angles_new = max_angles_new[Improved]
