@@ -62,7 +62,6 @@ class MOEAD_ALFPA(FlowerPollinationAlgorithm):
                  sampling=LHS(),
                  termination=None,
                  display=MultiObjectiveDisplay(),
-                 survival=RankAndCrowdingSurvival(),
                  **kwargs):
         """
 
@@ -205,27 +204,5 @@ class MOEAD_ALFPA(FlowerPollinationAlgorithm):
             self.sw_idx = (self.sw_idx+1) % self.W
 
         self.pop = Population.new(X=X, F=F, CV=CV, feasible=feasible)
-
-        # for i in index_permute:
-        #     xi = X[i]
-        #     #pick operator GRW or LRW
-        #     #GRW = operators 1-4
-        #     #LRW = operator 5 with n_offsprings=4
-        #     _X = []
-        #     if np.random.rand() <= self.p:
-        #         r = np.random.randint(self.pop_size)
-        #         xr = np.random.permutation(X[rank==0])[0]
-        #         for op in range(4):
-        #             _x = self.mating[op]._do(xr, xi, xl, xu)
-        #             _X = _X + [_x]
-        #     else:
-        #         _X = self.mating[4]._do(X, xi, xl, xu, 4)
-        #     _X = set_to_bounds_if_outside(np.array(_X), xl, xu)
-        #     off = Population.new(X=_X)
-        #     offs = Population.merge(offs, off)
-        # # replace the individuals in the population
-        # self.evaluator.eval(self.problem, offs, algorithm=self)
-        # self.pop = Population.merge(self.pop, offs)
-        # self.pop = self.survival._do(self.problem, self.pop, self.pop_size)
 
 parse_doc_string(MOEAD_ALFPA.__init__)

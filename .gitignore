@@ -121,7 +121,9 @@ ENV/
 .mypy_cache/
 
 
-#error and slurm 
+#error and slurm
 *.out
 *.err
 *slurm.sh
+
+*/paper/result/*
