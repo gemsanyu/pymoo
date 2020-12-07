@@ -22,6 +22,6 @@ if n_obj is None:
 else:
     ref_dirs = get_reference_directions("das-dennis", n_obj, n_partitions=99)
 
-algorithm = MOEAD_ALFPA_B(ref_dirs, decomposition=Tchebicheff())
+algorithm = MOEAD_ALFPA_B(ref_dirs, decomposition=Tchebicheff(), n_neighbors=10, n_replacement=2)
 
 test_alg(algorithm, n_runs, report_file_name, problem_name, n_var, n_obj)

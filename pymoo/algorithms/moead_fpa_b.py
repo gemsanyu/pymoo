@@ -63,6 +63,7 @@ class MOEAD_ALFPA_B(FlowerPollinationAlgorithm):
                  c=5,
                  decomposition=PBI(),
                  n_neighbors=None,
+                 n_replacement=None,
                  p=0.9,
                  sampling=LHS(),
                  termination=None,
@@ -127,9 +128,11 @@ class MOEAD_ALFPA_B(FlowerPollinationAlgorithm):
 
         # neighbours includes the entry by itself intentionally for the survival method
         self.neighbors = np.argsort(cdist(self.ref_dirs, self.ref_dirs), axis=1, kind='quicksort')[:, :self.n_neighbors]
+        self.n_replacement = n_replacement
 
         #saving the ranking
         self.rank = np.ones(self.pop_size)
+
 
     def _initialize(self):
         super()._initialize()
@@ -239,11 +242,14 @@ class MOEAD_ALFPA_B(FlowerPollinationAlgorithm):
                 self.rank[domination_index] = 1
 
                 #then replace the solution
-                X[N[I]] = off.X
-                F[N[I]] = off.F
-                CV[N[I]] = off.CV
-                feasible[N[I]] = off.feasible
-                self.rank[N[I]] = rank
+                replaced_index = N[I]
+                if self.n_replacement is not None:
+                    replaced_index = replaced_index[:self.n_replacement]
+                X[replaced_index] = off.X
+                F[replaced_index] = off.F
+                CV[replaced_index] = off.CV
+                feasible[replaced_index] = off.feasible
+                self.rank[replaced_index] = rank
 
         self.pop = Population.new(X=X, F=F, CV=CV, feasible=feasible)
 
