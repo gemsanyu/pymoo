@@ -1,7 +1,7 @@
 import numpy as np
 
 from pymoo.operators.mutation.polynomial_mutation import PolynomialMutation
-from pymoo.algorithms.so_cuckoo_search import MantegnasAlgorithm
+from pymoo.algorithms.so_fpa import MantegnasAlgorithm
 from pymoo.algorithms.nsga2 import RankAndCrowdingSurvival
 from pymoo.algorithms.so_fpa import FlowerPollinationAlgorithm
 from pymoo.decomposition.weighted_sum import WeightedSum
@@ -101,10 +101,13 @@ class MO_ALFPA(FlowerPollinationAlgorithm):
         self.mutation = PolynomialMutation(prob=None, eta=10)
         self.index = np.arange(self.pop_size)
 
-        #estimate max_gen from max_eval
-        self.max_gen = int(25000/self.pop_size)
-        print(self.max_gen)
         self.p0 = p
+
+    def setup(self, problem, **kwargs):
+        super().setup(problem, **kwargs)
+        #estimate max_gen from max_eval
+        self.max_gen = int(self.n_max_evals/self.pop_size)
+
 
     def _next(self):
 
