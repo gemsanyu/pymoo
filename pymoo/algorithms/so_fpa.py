@@ -1,6 +1,5 @@
 import numpy as np
 
-from pymoo.algorithms.so_cuckoo_search import MantegnasAlgorithm
 from pymoo.algorithms.so_genetic_algorithm import FitnessSurvival, GeneticAlgorithm
 from pymoo.docs import parse_doc_string
 from pymoo.model.infill import InfillCriterion
@@ -11,6 +10,32 @@ from pymoo.operators.sampling.latin_hypercube_sampling import LHS
 from pymoo.util.display import SingleObjectiveDisplay
 from pymoo.util.termination.default import SingleObjectiveDefaultTermination
 
+
+class MantegnasAlgorithm:
+
+    def __init__(self, beta) -> None:
+        """
+        This algorithm can be used to sample to levy flight.
+
+        Parameters
+        ----------
+        beta : float
+            The parameter of the levy distribution
+
+        """
+        super().__init__()
+
+        # calculate the constant that we can actually sample form the normal distribution
+        a = math.gamma(1. + beta) * math.sin(math.pi * beta / 2.)
+        b = beta * math.gamma((1. + beta) / 2.) * 2 ** ((beta - 1.) / 2)
+        self.s_u = (a / b) ** (1. / (2 * beta))
+        self.beta = beta
+        self.s_v = 1
+
+    def do(self, size=None):
+        u = np.random.normal(0, self.s_u, size)
+        v = np.abs(np.random.normal(0, self.s_v, size)) ** (1. / self.beta)
+        return u / v
 
 # =========================================================================================================
 # Pollination
