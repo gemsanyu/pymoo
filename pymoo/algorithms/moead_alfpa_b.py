@@ -1,58 +1,29 @@
 import numpy as np
 from scipy.spatial.distance import cdist
 
+from pymoo.algorithms.mo_alfpa import AdaptiveLevyFlight
 from pymoo.operators.mutation.polynomial_mutation import PolynomialMutation
-from pymoo.algorithms.so_cuckoo_search import MantegnasAlgorithm
 from pymoo.algorithms.nsga2 import RankAndCrowdingSurvival
 from pymoo.algorithms.so_fpa import FlowerPollinationAlgorithm
-from pymoo.decomposition.pbi import PBI
+from pymoo.decomposition.tchebicheff import Tchebicheff
 from pymoo.docs import parse_doc_string
 from pymoo.model.population import Population
 from pymoo.model.individual import Individual
 from pymoo.operators.repair.to_bound import set_to_bounds_if_outside
-from pymoo.operators.sampling.latin_hypercube_sampling import LHS
+from pymoo.operators.sampling.random_sampling import FloatRandomSampling
 from pymoo.util.reference_direction import sample_on_unit_simplex
 from pymoo.util.display import MultiObjectiveDisplay
 from pymoo.util.misc import set_if_none
 from pymoo.util.termination.default import MultiObjectiveDefaultTermination
 from pymoo.util.nds.non_dominated_sorting import NonDominatedSorting
 
-
-# =========================================================================================================
-# Implementation
-# =========================================================================================================
-class AdaptiveLevyFlight:
-    def __init__(self, alpha, beta):
-        self.alpha = alpha
-        #beta must be in range of [1..2]
-        beta = min(beta, 2)
-        beta = max(beta, 1)
-        self.beta = beta
-        self.cauchy = np.random.default_rng().standard_cauchy
-        self.gaussian = np.random.default_rng().standard_normal
-        self.levy = MantegnasAlgorithm(beta)
-        self.type = "grw"
-
-    def _do(self, xr, xi, xl, xu):
-        # get random levy/cauchy/gaussian values to be used for the step size
-        if self.beta == 1:
-            levy = self.cauchy(len(xi))
-        elif self.beta == 2:
-            levy = self.gaussian(len(xi))
-        else:
-            levy = self.levy.do(len(xi))
-        direction = (xr-xi)
-        _x = xi + (xu - xl)*self.alpha * levy * direction
-        return _x
-
 class LocalPollination:
     def __init__(self):
         super().__init__()
         self.type = "lrw"
 
-    def _do(self, xi, xr1, xr2):
-        #find n_offsprings*2 different solutions (n_offsprings pair)
-        _x = xi + 0.1*(xr1-xr2)
+    def _do(self, xi, xa, xb):
+        _x = xi + 0.01*(xa-xb)
         return _x
 
 class MOEAD_ALFPA_B(FlowerPollinationAlgorithm):
@@ -61,11 +32,11 @@ class MOEAD_ALFPA_B(FlowerPollinationAlgorithm):
                  ref_dirs,
                  alpha=0.1,
                  c=5,
-                 decomposition=PBI(),
+                 decomposition=Tchebicheff(),
                  n_neighbors=None,
                  n_replacement=None,
-                 p=0.9,
-                 sampling=LHS(),
+                 p=0.8,
+                 sampling=FloatRandomSampling(),
                  termination=None,
                  display=MultiObjectiveDisplay(),
                  **kwargs):
@@ -116,7 +87,7 @@ class MOEAD_ALFPA_B(FlowerPollinationAlgorithm):
         self.n_neighbors = n_neighbors
         if n_neighbors is None:
             #set to 20% of pop_size
-            self.n_neighbors = int(self.pop_size/5)
+            self.n_neighbors = int(self.pop_size/10)
 
         self.prob_neighbor_mating = p
         self.decomposition = decomposition
@@ -216,11 +187,11 @@ class MOEAD_ALFPA_B(FlowerPollinationAlgorithm):
             #currently just randomly pick operator
             pool, op = self._pick_op(F, i)
             opr = self.mating[pool][op]
-            if opr.type == "grw":
-                _x = opr._do(X[parents[0]], X[i], xl, xu)
+            if opr.type=="grw":
+                xr = X[parents[0]]
+                _x = opr._do(xr, X[i], xl, xu)
             else:
                 _x = opr._do(X[i], X[parents[0]], X[parents[1]])
-
             # evaluate the offspring
             # _x = set_to_bounds_if_outside(_x, xl, xu)
             _x = self.mutation._do(self.problem, _x[None, :])

@@ -2,7 +2,7 @@ import sys
 
 from tests.test_alg import test_alg
 from pymoo.factory import get_reference_directions
-from pymoo.algorithms.moead_fpa_b import MOEAD_ALFPA_B
+from pymoo.algorithms.moead_alfpa_b import MOEAD_ALFPA_B
 from pymoo.decomposition.tchebicheff import Tchebicheff
 
 n_runs = int(sys.argv[1])
