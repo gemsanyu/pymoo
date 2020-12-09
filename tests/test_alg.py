@@ -20,7 +20,10 @@ def test_alg(algorithm, n_runs, report_file_name, problem_name, n_var=None, n_ob
         #                  "mean_hv", "std_hv", "min_hv", "max_hv"])
 
         if n_var is not None:
-            problem = get_problem(problem_name, n_var=n_var, n_obj=n_obj)
+            if n_obj is not None:
+                problem = get_problem(problem_name, n_var=n_var, n_obj=n_obj)
+            else:
+                problem = get_problem(problem_name, n_var=n_var)
         else:
             problem = get_problem(problem_name)
 
