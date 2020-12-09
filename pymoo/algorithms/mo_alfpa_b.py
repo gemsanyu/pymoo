@@ -1,5 +1,7 @@
 import numpy as np
+from scipy.spatial.distance import cdist
 
+from pymoo.algorithms.mo_alfpa import LocalPollination, AdaptiveLevyFlight
 from pymoo.operators.mutation.polynomial_mutation import PolynomialMutation
 from pymoo.algorithms.so_fpa import MantegnasAlgorithm
 from pymoo.algorithms.nsga2 import RankAndCrowdingSurvival
@@ -15,53 +17,14 @@ from pymoo.util.reference_direction import sample_on_unit_simplex
 from pymoo.util.display import MultiObjectiveDisplay
 from pymoo.util.termination.default import MultiObjectiveDefaultTermination
 
-# =========================================================================================================
-# Implementation
-# =========================================================================================================
-class AdaptiveLevyFlight:
-    def __init__(self, alpha, beta):
-        self.type = "grw"
-        self.alpha = alpha
-        #beta must be in range of [1..2]
-        beta = min(beta, 2)
-        beta = max(beta, 1)
-        self.beta = beta
-        self.cauchy = np.random.default_rng().standard_cauchy
-        self.gaussian = np.random.default_rng().standard_normal
-        self.levy = MantegnasAlgorithm(beta)
-
-    def _do(self, xr, xi, xl, xu):
-        # get random levy/cauchy/gaussian values to be used for the step size
-        if self.beta == 1:
-            levy = self.cauchy(len(xi))
-        elif self.beta == 2:
-            levy = self.gaussian(len(xi))
-        else:
-            levy = self.levy.do(len(xi))
-        direction = (xr-xi)
-        _x = xi + (xu - xl)*self.alpha * levy * direction
-        return _x
-
-class LocalPollination:
-    def __init__(self):
-        super().__init__()
-        self.type = "lrw"
-
-    def _do(self, X, xi, xl, xu, n_offsprings):
-        #find n_offsprings*2 different solutions (n_offsprings pair)
-        Pair = np.random.permutation(X)[:2*n_offsprings]
-        R1, R2 = Pair[:n_offsprings], Pair[n_offsprings:2*n_offsprings]
-        _X = xi + 0.01*(R1-R2)
-        return _X
-
-class MO_ALFPA(FlowerPollinationAlgorithm):
+class MO_ALFPA_B(FlowerPollinationAlgorithm):
 
     def __init__(self,
                  pop_size=100,
                  alpha=0.1,
                  mating=None,
-                 p=0.8,
                  sampling=FloatRandomSampling(),
+                 k=3,
                  termination=None,
                  display=MultiObjectiveDisplay(),
                  survival=RankAndCrowdingSurvival(),
@@ -99,45 +62,59 @@ class MO_ALFPA(FlowerPollinationAlgorithm):
 
         cauchy = AdaptiveLevyFlight(alpha, 1)
         gaussian = AdaptiveLevyFlight(alpha, 2)
-        levy1 = AdaptiveLevyFlight(alpha, 1.3)
-        levy2 = AdaptiveLevyFlight(alpha, 1.7)
+        levy = AdaptiveLevyFlight(alpha, 1.5)
+        # levy1 = AdaptiveLevyFlight(alpha, 1.3)
+        # levy2 = AdaptiveLevyFlight(alpha, 1.7)
         lrw = LocalPollination()
-        self.mating = [cauchy, gaussian, levy1, levy2, lrw]
+        self.mating = [[gaussian, lrw], [cauchy, levy]]
         self.mutation = PolynomialMutation(prob=None, eta=10)
         self.index = np.arange(self.pop_size)
 
-        self.p0 = p
+        self.k = k
 
     def setup(self, problem, **kwargs):
         super().setup(problem, **kwargs)
-        #estimate max_gen from max_eval
-        self.max_gen = int(self.termination.n_max_evals/self.pop_size)
+
+    def _pick_op(self, i, Rank, HAD):
+        if Rank[i] == 0:
+            pool = 0
+        else:
+            pool = 1
+
+        j = np.random.randint(self.pop_size)
+        if HAD[i]<HAD[j]:
+            op = 0
+        elif HAD[i]>HAD[j]:
+            op = 1
+        else:
+            op = np.random.randint(2)
+
+        return pool, op
+
+    def _calc_HAD(self, F, k=3):
+        distances =  np.sort(cdist(F, F), axis=1, kind='quicksort')[:, :k]
+        distances[distances==0] = np.inf
+        distances = 1/distances
+        return k/np.sum(distances, axis=1)
 
     def _next(self):
 
-        # updating p
-        self.p = self.p0 - 0.1 * ((self.max_gen-self.n_gen) / self.max_gen)
-
         X = self.pop.get("X")
         F = self.pop.get("F")
+        HAD = self._calc_HAD(F, self.k)
         rank = self.pop.get("rank")
         xl, xu = self.problem.bounds()
         offs = Population()
-        index_permute = np.random.permutation(self.index)[:int(self.pop_size/4)]
-        for i in index_permute:
+        for i in self.index:
             xi = X[i]
-            #pick operator GRW or LRW
-            #GRW = operators 1-4
-            #LRW = operator 5 with n_offsprings=4
             _X = []
-            if np.random.rand() <= self.p:
-                r = np.random.randint(self.pop_size)
+            pool, op = self._pick_op(i, rank, HAD)
+            opr = self.mating[pool][op]
+            if opr.type=="grw":
                 xr = np.random.permutation(X[rank==0])[0]
-                for op in range(4):
-                    _x = self.mating[op]._do(xr, xi, xl, xu)
-                    _X = _X + [_x]
+                _X = opr._do(xr, xi, xl, xu)[None, :]
             else:
-                _X = self.mating[4]._do(X, xi, xl, xu, 4)
+                _X = opr._do(X, xi, xl, xu, 1)
             _X = self.mutation._do(self.problem, np.array(_X))
             off = Population.new(X=_X)
             offs = Population.merge(offs, off)
@@ -146,6 +123,4 @@ class MO_ALFPA(FlowerPollinationAlgorithm):
         self.pop = Population.merge(self.pop, offs)
         self.pop = self.survival._do(self.problem, self.pop, self.pop_size)
 
-
-
-parse_doc_string(MO_ALFPA.__init__)
+parse_doc_string(MO_ALFPA_B.__init__)
