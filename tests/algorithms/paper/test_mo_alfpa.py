@@ -8,7 +8,10 @@ problem_name = sys.argv[2]
 report_file_name = sys.argv[3]
 if len(sys.argv) > 4:
     n_var = int(sys.argv[4])
-    n_obj = int(sys.argv[5])
+    if len(sys.argv) > 5:
+        n_obj = int(sys.argv[5])
+    else:
+        n_obj = None
 else:
     n_obj = None
     n_var = None
