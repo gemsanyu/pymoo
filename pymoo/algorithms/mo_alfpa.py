@@ -94,26 +94,29 @@ class MO_ALFPA(FlowerPollinationAlgorithm):
 
         cauchy = AdaptiveLevyFlight(alpha, 1)
         gaussian = AdaptiveLevyFlight(alpha, 2)
-        levy1 = AdaptiveLevyFlight(alpha, 1.4)
-        levy2 = AdaptiveLevyFlight(alpha, 1.6)
+        levy1 = AdaptiveLevyFlight(alpha, 1.3)
+        levy2 = AdaptiveLevyFlight(alpha, 1.7)
         lrw = LocalPollination()
         self.mating = [cauchy, gaussian, levy1, levy2, lrw]
         self.mutation = PolynomialMutation(prob=None, eta=10)
         self.index = np.arange(self.pop_size)
 
         #estimate max_gen from max_eval
-        self.max_gen = 250
+        self.max_gen = int(25000/self.pop_size)
+        print(self.max_gen)
         self.p0 = p
-        self.p = p
 
     def _next(self):
+
+        # updating p
+        self.p = self.p0 - 0.1 * ((self.max_gen-self.n_gen) / self.max_gen)
+
         X = self.pop.get("X")
         F = self.pop.get("F")
         rank = self.pop.get("rank")
         xl, xu = self.problem.bounds()
         offs = Population()
         index_permute = np.random.permutation(self.index)[:int(self.pop_size/4)]
-
         for i in index_permute:
             xi = X[i]
             #pick operator GRW or LRW
@@ -136,7 +139,6 @@ class MO_ALFPA(FlowerPollinationAlgorithm):
         self.pop = Population.merge(self.pop, offs)
         self.pop = self.survival._do(self.problem, self.pop, self.pop_size)
 
-        #updating p
-        self.p = self.p0 - 0.1*(self.n_gen/self.max_gen)
+
 
 parse_doc_string(MO_ALFPA.__init__)
