@@ -1,4 +1,5 @@
 import numpy as np
+import math
 
 from pymoo.algorithms.so_genetic_algorithm import FitnessSurvival, GeneticAlgorithm
 from pymoo.docs import parse_doc_string

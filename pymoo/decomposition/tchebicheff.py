@@ -28,22 +28,6 @@ class Tchebicheff(Decomposition):
         tchebi = v.max(axis=1)
         return tchebi
 
-<<<<<<< HEAD
-class Tchebicheff2(Decomposition):
-
-    def _do(self, F, weights, normalize=False, **kwargs):
-        w = weights
-        w[weights==0] = 10**6
-        f = F
-        if normalize:
-            if self.nadir_point is None:
-                raise("Tchebicheff2::_do: if normalize then nadir point must be provided")
-            f = (f-self.utopian_point)/(self.nadir_point-self.utopian_point)
-
-        v = anp.abs(f - self.utopian_point)/w
-        tchebi = v.max(axis=1)
-        return tchebi
-=======
     def _do_augmented(self, F, weights, rho=0.1, **kwargs):
         F_normalized = anp.abs(F - self.utopian_point)
         v = F_normalized*weights + rho*anp.sum(F_normalized)
@@ -63,4 +47,3 @@ class Tchebicheff2(Decomposition):
             return self._do_modified(F, weights, rho, **kwargs)
         else:
             return self._do_original(F, weights, **kwargs)
->>>>>>> add tchebycheff variants

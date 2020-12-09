@@ -106,7 +106,7 @@ class MO_ALFPA(FlowerPollinationAlgorithm):
     def setup(self, problem, **kwargs):
         super().setup(problem, **kwargs)
         #estimate max_gen from max_eval
-        self.max_gen = int(self.n_max_evals/self.pop_size)
+        self.max_gen = int(self.termination.n_max_evals/self.pop_size)
 
 
     def _next(self):
